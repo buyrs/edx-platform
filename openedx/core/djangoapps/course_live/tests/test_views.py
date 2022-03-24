@@ -172,21 +172,20 @@ class TestCourseLiveConfigurationView(ModuleStoreTestCase, APITestCase):
             'course_key': str(self.course.id),
             'provider_type': 'zoom',
             'enabled': False,
-            'lti_configuration':
-                {
-                    'lti_1p1_client_key': 'new_key',
-                    'lti_1p1_client_secret': 'new_secret',
-                    'lti_1p1_launch_url': 'example01.com',
-                    'version': 'lti_1p1',
-                    'lti_config': {
-                        'pii_share_username': True,
-                        'pii_share_email': True,
-                        'additional_parameters': {
-                            'custom_instructor_email':
-                                'new_email@example.com'
-                        }
+            'lti_configuration': {
+                'lti_1p1_client_key': 'new_key',
+                'lti_1p1_client_secret': 'new_secret',
+                'lti_1p1_launch_url': 'example01.com',
+                'version': 'lti_1p1',
+                'lti_config': {
+                    'pii_share_username': True,
+                    'pii_share_email': True,
+                    'additional_parameters': {
+                        'custom_instructor_email':
+                            'new_email@example.com'
                     }
-                },
+                }
+            },
             'pii_sharing_allowed': True
         }
         self.assertEqual(content, expected_data)
