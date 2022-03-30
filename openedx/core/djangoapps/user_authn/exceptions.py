@@ -30,6 +30,10 @@ class AuthFailedError(Exception):
 
 
 class VulnerablePasswordError(Exception):
+    """
+    This is a helper for the login view, allowing the view to error out if password
+    is vulnerable.
+    """
     def __init__(self, value, redirect_url=None):
         super().__init__()
         self.value = value
