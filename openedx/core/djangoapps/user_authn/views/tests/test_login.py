@@ -385,12 +385,11 @@ class LoginTest(SiteMixin, CacheIsolationTestCase, OpenEdxEventsTestMixin):
         within block threshold, then login fails and user is not authenticated.
         """
         password = hashlib.sha1(self.password.encode('utf-8')).hexdigest().upper()
-        api_response = { password[5:]: 1000000 }
+        api_response = {password[5:]: 1000000}
         with patch.object(PwnedPasswordsAPI, 'range', return_value=api_response):
             response, _ = self._login_response(self.user_email, self.password)
 
         self._assert_response(response, success=False, error_code='require-password-change')
-
 
     @override_settings(ENABLE_AUTHN_LOGIN_HIBP_NUDGE=True)
     @override_waffle_switch(ENABLE_PWNED_PASSWORD_API, True)
