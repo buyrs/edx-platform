@@ -1016,6 +1016,8 @@ ENABLE_COPPA_COMPLIANCE = False
 # VAN-741 - save for later api put behind a flag to make it only available for edX
 ENABLE_SAVE_FOR_LATER = False
 
+SAVE_FOR_LATER_REMINDER_EMAIL_THRESHOLD = 15
+
 ############################# SET PATH INFORMATION #############################
 PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /edx-platform/lms
 REPO_ROOT = PROJECT_ROOT.dirname()

@@ -61,9 +61,17 @@ class CourseSaveForLaterApiView(APIView):
         data = request.data
         course_id = data.get('course_id')
         email = data.get('email')
+        org_img_url = data.get('org_img_url')
+        marketing_url = data.get('marketing_url')
+        weeks_to_complete = int(data.get('weeks_to_complete'))
+        min_effort = int(data.get('min_effort'))
+        max_effort = int(data.get('max_effort'))
+        user_id = request.user.id
+        pref_lang = request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME, 'en')
+        send_to_self = bool(not request.user.is_anonymous and request.user.email == email)
 
-        if getattr(request, 'limited', False):
-            return Response({'error_code': 'rate-limited'}, status=403)
+        # if getattr(request, 'limited', False):
+        #     return Response({'error_code': 'rate-limited'}, status=403)
 
         if get_email_validation_error(email):
             return Response({'error_code': 'incorrect-email'}, status=400)
@@ -80,12 +88,26 @@ class CourseSaveForLaterApiView(APIView):
             user_id=user.id,
             email=email,
             course_id=course_id,
+            org_img_url=org_img_url,
+            marketing_url=marketing_url,
+            weeks_to_complete=weeks_to_complete,
+            min_effort=min_effort,
+            max_effort=max_effort,
+            reminder_email_sent=False,
         )
         course_data = {
             'course': course,
+            'send_to_self': send_to_self,
+            'user_id': user_id,
+            'pref-lang': pref_lang,
+            'org_img_url': org_img_url,
+            'marketing_url': marketing_url,
+            'weeks_to_complete': weeks_to_complete,
+            'min_effort': min_effort,
+            'max_effort': max_effort,
             'type': 'course',
         }
-        if send_email(request, email, course_data):
+        if send_email(email, course_data):
             return Response({'result': 'success'}, status=200)
         else:
             return Response({'error_code': 'email-not-send'}, status=400)
@@ -120,6 +142,9 @@ class ProgramSaveForLaterApiView(APIView):
         data = request.data
         program_uuid = data.get('program_uuid')
         email = data.get('email')
+        user_id = request.user.id
+        pref_lang = request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME, 'en')
+        send_to_self = bool(not request.user.is_anonymous and request.user.email == email)
 
         if getattr(request, 'limited', False):
             return Response({'error_code': 'rate-limited'}, status=403)
@@ -139,9 +164,12 @@ class ProgramSaveForLaterApiView(APIView):
         if program:
             program_data = {
                 'program': program,
+                'send_to_self': send_to_self,
+                'user_id': user_id,
+                'pref-lang': pref_lang,
                 'type': 'program',
             }
-            if send_email(request, email, program_data):
+            if send_email(email, program_data):
                 return Response({'result': 'success'}, status=200)
             else:
                 return Response({'error_code': 'email-not-send'}, status=400)
