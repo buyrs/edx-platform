@@ -22,24 +22,33 @@ from openedx.core.lib.celery.task_utils import emulate_http_request
 log = logging.getLogger('edx.celery.task')
 
 
-@shared_task
-@set_code_owner_attribute
-def check_pwned_password_and_send_track_event(user_id, password, internal_user=False, is_new_user=False):
-    """
-    Check the Pwned Databases and send its event to Segment.
-    """
+def _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user):
     try:
         pwned_properties = check_pwned_password(password)
         if pwned_properties:
             pwned_properties['internal_user'] = internal_user
             pwned_properties['new_user'] = is_new_user
             segment.track(user_id, 'edx.bi.user.pwned.password.status', pwned_properties)
+        return pwned_properties
     except Exception:  # pylint: disable=W0703
         log.exception(
             'Unable to get response from pwned password api for user_id: "%s"',
             user_id,
         )
         return None  # lint-amnesty, pylint: disable=raise-missing-from
+
+
+def check_vulnerable_password(user_id, password, internal_user=False, is_new_user=False):
+    return _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user)
+
+
+@shared_task
+@set_code_owner_attribute
+def check_pwned_password_and_send_track_event(user_id, password, internal_user=False, is_new_user=False):
+    """
+    Check the Pwned Databases and send its event to Segment.
+    """
+    return _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user)
 
 
 @shared_task(bind=True)

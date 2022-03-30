@@ -27,3 +27,13 @@ class AuthFailedError(Exception):
                 resp[attr] = self.__getattribute__(attr)
 
         return resp
+
+
+class VulnerablePasswordError(Exception):
+    def __init__(self, value, redirect_url=None):
+        super().__init__()
+        self.value = value
+        self.redirect_url = redirect_url
+
+    def get_response(self):
+        return {'error_code': self.value, 'redirect_url': self.redirect_url, 'success': False}

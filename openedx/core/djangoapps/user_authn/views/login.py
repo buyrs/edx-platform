@@ -44,7 +44,7 @@ from openedx.core.djangoapps.safe_sessions.middleware import mark_user_change_as
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.user_authn.config.waffle import ENABLE_LOGIN_USING_THIRDPARTY_AUTH_ONLY
 from openedx.core.djangoapps.user_authn.cookies import get_response_with_refreshed_jwt_cookies, set_logged_in_cookies
-from openedx.core.djangoapps.user_authn.exceptions import AuthFailedError
+from openedx.core.djangoapps.user_authn.exceptions import AuthFailedError, VulnerablePasswordError
 from openedx.core.djangoapps.user_authn.toggles import (
     is_require_third_party_auth_enabled,
     should_redirect_to_authn_microfrontend
@@ -52,7 +52,7 @@ from openedx.core.djangoapps.user_authn.toggles import (
 from openedx.core.djangoapps.user_authn.views.login_form import get_login_session_form
 from openedx.core.djangoapps.user_authn.views.password_reset import send_password_reset_email_for_user
 from openedx.core.djangoapps.user_authn.views.utils import API_V1, ENTERPRISE_ENROLLMENT_URL_REGEX, UUID4_REGEX
-from openedx.core.djangoapps.user_authn.tasks import check_pwned_password_and_send_track_event
+from openedx.core.djangoapps.user_authn.tasks import check_vulnerable_password
 from openedx.core.djangoapps.util.user_messages import PageLevelMessages
 from openedx.core.djangolib.markup import HTML, Text
 from openedx.core.lib.api.view_utils import require_post_params  # lint-amnesty, pylint: disable=unused-import
@@ -576,12 +576,21 @@ def login_user(request, api_version='v1'):
             if possibly_authenticated_user and password_policy_compliance.should_enforce_compliance_on_login():
                 # Important: This call must be made AFTER the user was successfully authenticated.
                 _enforce_password_policy_compliance(request, possibly_authenticated_user)
-                check_pwned_password_and_send_track_event.delay(user.id, request.POST.get('password'), user.is_staff)
 
         if possibly_authenticated_user is None or not (
             possibly_authenticated_user.is_active or settings.MARKETING_EMAILS_OPT_IN
         ):
             _handle_failed_authentication(user, possibly_authenticated_user)
+
+        pwned_properties = check_vulnerable_password(
+            user.id, request.POST.get('password'), user.is_staff
+        ) if not is_user_third_party_authenticated else {}
+        password_frequency = pwned_properties.get('frequency', 0)
+        if (
+            settings.ENABLE_AUTHN_LOGIN_HIBP_BLOCK and
+            password_frequency >= settings.LOGIN_HIBP_BLOCK_FREQUENCY_THRESHOLD
+        ):
+            raise VulnerablePasswordError('require-password-change')
 
         _handle_successful_authentication_and_login(possibly_authenticated_user, request)
 
@@ -600,6 +609,12 @@ def login_user(request, api_version='v1'):
                 root_url,
                 enterprise_selection_page(request, possibly_authenticated_user, finish_auth_url or next_url)
             )
+
+        if (
+            settings.ENABLE_AUTHN_LOGIN_HIBP_NUDGE and
+            0 < password_frequency <= settings.LOGIN_HIBP_NUDGE_FREQUENCY_THRESHOLD
+        ):
+            raise VulnerablePasswordError('nudge-password-change', redirect_url)
 
         response = JsonResponse({
             'success': True,
@@ -623,13 +638,16 @@ def login_user(request, api_version='v1'):
             set_custom_attribute('login_error_code', error_code)
         email_or_username_key = 'email' if api_version == API_V1 else 'email_or_username'
         email_or_username = request.POST.get(email_or_username_key, None)
-        email_or_username = possibly_authenticated_user.email \
-            if possibly_authenticated_user else email_or_username
+        email_or_username = possibly_authenticated_user.email if possibly_authenticated_user else email_or_username
         response_content['email'] = email_or_username
-        response = JsonResponse(response_content, status=400)
-        set_custom_attribute('login_user_auth_failed_error', True)
-        set_custom_attribute('login_user_response_status', response.status_code)
-        return response
+    except VulnerablePasswordError as error:
+        response_content = error.get_response()
+        log.exception(response_content)
+
+    response = JsonResponse(response_content, status=400)
+    set_custom_attribute('login_user_auth_failed_error', True)
+    set_custom_attribute('login_user_response_status', response.status_code)
+    return response
 
 
 # CSRF protection is not needed here because the only side effect
