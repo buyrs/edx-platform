@@ -109,6 +109,7 @@ class CourseInfoSerializer(serializers.Serializer):  # pylint: disable=abstract-
     celebrations = serializers.DictField()
     user_has_passing_grade = serializers.BooleanField()
     course_exit_page_is_active = serializers.BooleanField()
+    can_view_certificate = serializers.BooleanField()
     certificate_data = CertificateDataSerializer()
     verify_identity_url = AbsoluteURLField()
     verification_status = serializers.CharField()
