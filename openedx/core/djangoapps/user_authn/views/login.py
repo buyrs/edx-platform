@@ -585,10 +585,10 @@ def login_user(request, api_version='v1'):
         pwned_properties = check_vulnerable_password(
             user.id, request.POST.get('password'), user.is_staff
         ) if not is_user_third_party_authenticated else {}
-        password_frequency = pwned_properties.get('frequency', 0)
+        password_frequency = pwned_properties.get('frequency', -1)
         if (
-            settings.ENABLE_AUTHN_LOGIN_HIBP_BLOCK and
-            password_frequency >= settings.LOGIN_HIBP_BLOCK_FREQUENCY_THRESHOLD
+            settings.ENABLE_AUTHN_LOGIN_BLOCK_HIBP_POLICY and
+            password_frequency >= settings.HIBP_LOGIN_BLOCK_PASSWORD_FREQUENCY_THRESHOLD
         ):
             raise VulnerablePasswordError(
                 _('Our system detected that your password is vulnerable. '
@@ -615,8 +615,8 @@ def login_user(request, api_version='v1'):
             )
 
         if (
-            settings.ENABLE_AUTHN_LOGIN_HIBP_NUDGE and
-            0 < password_frequency <= settings.LOGIN_HIBP_NUDGE_FREQUENCY_THRESHOLD
+            settings.ENABLE_AUTHN_LOGIN_NUDGE_HIBP_POLICY and
+            0 <= password_frequency <= settings.HIBP_LOGIN_NUDGE_PASSWORD_FREQUENCY_THRESHOLD
         ):
             raise VulnerablePasswordError(
                 _('Our system detected that your password is vulnerable. '
