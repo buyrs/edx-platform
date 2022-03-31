@@ -42,6 +42,7 @@ from common.djangoapps.util.password_policy_validators import normalize_password
 from openedx.core.djangoapps.password_policy import compliance as password_policy_compliance
 from openedx.core.djangoapps.safe_sessions.middleware import mark_user_change_as_expected
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.user_api import accounts
 from openedx.core.djangoapps.user_authn.config.waffle import ENABLE_LOGIN_USING_THIRDPARTY_AUTH_ONLY
 from openedx.core.djangoapps.user_authn.cookies import get_response_with_refreshed_jwt_cookies, set_logged_in_cookies
 from openedx.core.djangoapps.user_authn.exceptions import AuthFailedError, VulnerablePasswordError
@@ -591,8 +592,7 @@ def login_user(request, api_version='v1'):
             password_frequency >= settings.HIBP_LOGIN_BLOCK_PASSWORD_FREQUENCY_THRESHOLD
         ):
             raise VulnerablePasswordError(
-                _('Our system detected that your password is vulnerable. '
-                  'Change your password so that your account stays secure.'),
+                accounts.AUTHN_LOGIN_BLOCK_HIBP_POLICY_MSG,
                 'require-password-change'
             )
 
@@ -619,8 +619,7 @@ def login_user(request, api_version='v1'):
             0 <= password_frequency <= settings.HIBP_LOGIN_NUDGE_PASSWORD_FREQUENCY_THRESHOLD
         ):
             raise VulnerablePasswordError(
-                _('Our system detected that your password is vulnerable. '
-                  'We recommend you change it so that your account stays secure.'),
+                accounts.AUTHN_LOGIN_NUDGE_HIBP_POLICY_MSG,
                 'nudge-password-change',
                 redirect_url
             )
