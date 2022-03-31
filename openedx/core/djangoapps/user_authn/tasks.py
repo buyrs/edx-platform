@@ -23,6 +23,9 @@ log = logging.getLogger('edx.celery.task')
 
 
 def _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user):
+    """
+    Utility function to check the Pwned Databases and send its event to Segment.
+    """
     try:
         pwned_properties = check_pwned_password(password)
         if pwned_properties:
@@ -39,6 +42,9 @@ def _check_pwned_password_and_send_track_event(user_id, password, internal_user,
 
 
 def check_vulnerable_password(user_id, password, internal_user=False, is_new_user=False):
+    """
+    Returns the properties of password if it's pawned. This is a blocking function
+    """
     return _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user)
 
 
@@ -46,7 +52,8 @@ def check_vulnerable_password(user_id, password, internal_user=False, is_new_use
 @set_code_owner_attribute
 def check_pwned_password_and_send_track_event(user_id, password, internal_user=False, is_new_user=False):
     """
-    Check the Pwned Databases and send its event to Segment.
+    Returns the properties of password if it's pawned. This is not a blocking function and runs
+    in the background.
     """
     return _check_pwned_password_and_send_track_event(user_id, password, internal_user, is_new_user)
 
