@@ -590,7 +590,11 @@ def login_user(request, api_version='v1'):
             settings.ENABLE_AUTHN_LOGIN_HIBP_BLOCK and
             password_frequency >= settings.LOGIN_HIBP_BLOCK_FREQUENCY_THRESHOLD
         ):
-            raise VulnerablePasswordError('require-password-change')
+            raise VulnerablePasswordError(
+                _('Our system detected that your password is vulnerable. '
+                  'Change your password so that your account stays secure.'),
+                'require-password-change'
+            )
 
         _handle_successful_authentication_and_login(possibly_authenticated_user, request)
 
@@ -614,7 +618,12 @@ def login_user(request, api_version='v1'):
             settings.ENABLE_AUTHN_LOGIN_HIBP_NUDGE and
             0 < password_frequency <= settings.LOGIN_HIBP_NUDGE_FREQUENCY_THRESHOLD
         ):
-            raise VulnerablePasswordError('nudge-password-change', redirect_url)
+            raise VulnerablePasswordError(
+                _('Our system detected that your password is vulnerable. '
+                  'We recommend you change it so that your account stays secure.'),
+                'nudge-password-change',
+                redirect_url
+            )
 
         response = JsonResponse({
             'success': True,
