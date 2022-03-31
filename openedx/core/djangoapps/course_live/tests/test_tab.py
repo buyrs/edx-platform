@@ -68,7 +68,7 @@ class CourseLiveTabTestCase(TabTestCase):
     @ddt.unpack
     def test_course_live_lti_tab_pii(self, enable_sending_pii, share_username, share_email):
         """
-
+        Test is course Live is sharing pii data as expected
         """
         CourseAllowPIISharingInLTIFlag.objects.create(course_id=self.course.id, enabled=enable_sending_pii)
         self.course_live_config.lti_configuration.lti_config = {
