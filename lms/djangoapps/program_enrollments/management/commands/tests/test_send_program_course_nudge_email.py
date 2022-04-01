@@ -40,20 +40,19 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         self.unenrolled_course_1 = CourseFactory(course_runs=[self.course_run_1])
         self.unenrolled_course_2 = CourseFactory(course_runs=[self.course_run_2])
 
-        self.enrolled_program_1 = ProgramFactory(courses=[self.enrolled_course, self.unenrolled_course_1])
-        self.enrolled_program_2 = ProgramFactory(courses=[self.enrolled_course, self.unenrolled_course_2])
+        self.enrolled_program_1 = ProgramFactory(
+            courses=[self.enrolled_course, self.unenrolled_course_1],
+            type='MicroBachelors'
+        )
+        self.enrolled_program_2 = ProgramFactory(
+            courses=[self.enrolled_course, self.unenrolled_course_2],
+            type='MicroMasters'
+        )
         self.unenrolled_program = ProgramFactory()
         self.create_grade(user_id=self.user_1.id, course_id=self.enrolled_course_run['key'])
         self.create_grade(user_id=self.user_2.id, course_id=self.enrolled_course_run['key'])
 
-        self.get_programs_patcher = patch(
-            'openedx.core.djangoapps.catalog.utils.get_programs',
-            return_value=[self.enrolled_program_1, self.enrolled_program_2])
-        self.get_programs_patcher.start()
-
-    def tearDown(self):
-        super().tearDown()
-        self.get_programs_patcher.stop()
+        self.all_programs = [self.enrolled_program_1, self.enrolled_program_2, self.unenrolled_program]
 
     def create_grade(self, user_id, course_id):
         """
@@ -69,14 +68,35 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         }
         PersistentCourseGrade.objects.create(**params)
 
+    def get_programs_mock(self, **kwargs):
+        """
+        Mocks get_programs functionality
+        """
+        course_run_id = kwargs.get('course')
+        uuid = kwargs.get('uuid')
+        if course_run_id:
+            programs = []
+            for program in self.all_programs:
+                for course in program['courses']:
+                    for course_run in course['course_runs']:
+                        if course_run['key'] == course_run_id:
+                            programs.append(program)
+            return programs
+        elif uuid:
+            for program in self.all_programs:
+                if uuid == program['uuid']:
+                    return program
+
     @ddt.data(
         True, False
     )
     @patch('common.djangoapps.student.models.segment.track')
-    def test_email_send(self, add_no_commit, mock_track):
+    @patch('openedx.core.djangoapps.catalog.utils.get_programs')
+    def test_email_send(self, add_no_commit, get_programs_mock, mock_track):
         """
         Test Segment fired as expected.
         """
+        get_programs_mock.side_effect = self.get_programs_mock
         with LogCapture() as logger:
             if add_no_commit:
                 call_command(self.command, '--no-commit')
@@ -90,7 +110,9 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
                     LOG_PATH,
                     'INFO',
                     f"[Program Course Nudge Email] 2 Emails sent. Records: ["
-                    f"'User: {self.user_1.username}, Course: {self.enrolled_course_run['key']}', "
-                    f"'User: {self.user_2.username}, Course: {self.enrolled_course_run['key']}']"
+                    f"'User: {self.user_1.username}, Completed Course: {self.enrolled_course_run['key']},"
+                    f" Suggested Course: {self.course_run_2['key']}', "
+                    f"'User: {self.user_2.username}, Completed Course: {self.enrolled_course_run['key']},"
+                    f" Suggested Course: {self.course_run_2['key']}']"
                 )
             )
