@@ -88,7 +88,7 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
                     return program
 
     @ddt.data(
-        True, False
+        False, True
     )
     @patch('common.djangoapps.student.models.segment.track')
     @patch('openedx.core.djangoapps.catalog.utils.get_programs')
