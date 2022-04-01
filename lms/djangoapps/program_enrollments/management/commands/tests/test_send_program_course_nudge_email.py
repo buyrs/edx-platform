@@ -68,25 +68,6 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         }
         PersistentCourseGrade.objects.create(**params)
 
-    def get_programs_mock(self, **kwargs):
-        """
-        Mocks get_programs functionality
-        """
-        course_run_id = kwargs.get('course')
-        uuid = kwargs.get('uuid')
-        if course_run_id:
-            programs = []
-            for program in self.all_programs:
-                for course in program['courses']:
-                    for course_run in course['course_runs']:
-                        if course_run['key'] == course_run_id:
-                            programs.append(program)
-            return programs
-        elif uuid:
-            for program in self.all_programs:
-                if uuid == program['uuid']:
-                    return program
-
     @ddt.data(
         False, True
     )
@@ -96,7 +77,7 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         """
         Test Segment fired as expected.
         """
-        get_programs_mock.side_effect = self.get_programs_mock
+        get_programs_mock.return_value = [self.enrolled_program_1, self.enrolled_program_2]
         with LogCapture() as logger:
             if add_no_commit:
                 call_command(self.command, '--no-commit')

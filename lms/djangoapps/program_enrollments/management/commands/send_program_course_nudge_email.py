@@ -86,8 +86,7 @@ class Command(BaseCommand):
             for not_started_courses in program['not_started']:
                 for course_run in not_started_courses['course_runs']:
                     if self.valid_course_run(course_run) and course_run['key'] != completed_course_id:
-                        program_details = get_programs(uuid=program['uuid'])
-                        return program_details, course_run
+                        return program, course_run
         return None, None
 
     def sort_programs(self, programs):
@@ -115,6 +114,14 @@ class Command(BaseCommand):
             for course_run in course['course_runs']:
                 if course_run['key'] == course_run_id:
                     return course_run
+
+    def get_program(self, programs, program_progress):
+        """
+        get detailed program.
+        """
+        for program in programs:
+            if program['uuid'] == program_progress['uuid']:
+                return program
 
     def emit_event(self, user, program, suggested_course_run, completed_course_run):
         """
@@ -169,10 +176,11 @@ class Command(BaseCommand):
                 for user in users:
                     meter = ProgramProgressMeter(site=site, user=user, include_course_entitlements=False)
                     programs_progress = meter.progress(programs=course_linked_programs, count_only=False)
-                    suggested_program, suggested_course_run = self.get_course_run_to_suggest(
+                    suggested_program_progress, suggested_course_run = self.get_course_run_to_suggest(
                         programs_progress, completed_course_id
                     )
                     if suggested_course_run:
+                        suggested_program = self.get_program(course_linked_programs, suggested_program_progress)
                         completed_course_run = self.get_course_run(suggested_program, completed_course_id)
                         if should_commit:
                             self.emit_event(user, suggested_program, suggested_course_run, completed_course_run)
