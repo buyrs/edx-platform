@@ -100,10 +100,8 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         with LogCapture() as logger:
             if add_no_commit:
                 call_command(self.command, '--no-commit')
-                assert mock_track.call_count == 0
             else:
                 call_command(self.command)
-                assert mock_track.call_count == 2
 
             logger.check_present(
                 (
@@ -116,3 +114,7 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
                     f" Suggested Course: {self.course_run_2['key']}']"
                 )
             )
+            if add_no_commit:
+                assert mock_track.call_count == 0
+            else:
+                assert mock_track.call_count == 2
