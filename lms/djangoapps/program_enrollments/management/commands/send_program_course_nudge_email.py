@@ -72,9 +72,9 @@ class Command(BaseCommand):
         Check if a course run is in enrollable state.
         """
         return course_run['is_enrollable'] \
-               and course_run['is_marketable'] \
-               and course_run['marketing_url'] \
-               and course_run['status'] == COURSE_PUBLISHED
+            and course_run['is_marketable'] \
+            and course_run['marketing_url'] \
+            and course_run['status'] == COURSE_PUBLISHED
 
     def get_course_run_to_suggest(self, programs_progress, completed_course_id):
         """
