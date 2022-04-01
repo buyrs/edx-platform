@@ -72,7 +72,7 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         False, True
     )
     @patch('common.djangoapps.student.models.segment.track')
-    @patch('openedx.core.djangoapps.catalog.utils.get_programs')
+    @patch('lms.djangoapps.program_enrollments.management.commands.send_program_course_nudge_email.get_programs')
     def test_email_send(self, add_no_commit, get_programs_mock, mock_track):
         """
         Test Segment fired as expected.
@@ -81,9 +81,10 @@ class TestSendProgramCourseNudgeEmailCommand(TestCase):
         with LogCapture() as logger:
             if add_no_commit:
                 call_command(self.command, '--no-commit')
+                assert mock_track.call_count == 0
             else:
                 call_command(self.command)
-
+                assert mock_track.call_count == 2
             logger.check_present(
                 (
                     LOG_PATH,
